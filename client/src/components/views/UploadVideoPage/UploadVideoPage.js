@@ -98,6 +98,7 @@ function UploadVideoPage(props) {
 
         axios.post('/api/video/uploadfiles', formData, config)
             .then(response => {
+                console.log(response)
                 if (response.data.success) {
 
                     let variable = {
@@ -110,6 +111,7 @@ function UploadVideoPage(props) {
 
                     axios.post('/api/video/thumbnail', variable)
                         .then(response => {
+                            console.log(response)
                             if (response.data.success) {
                                 setDuration(response.data.fileDuration)
                                 setThumbnail(response.data.thumbsFilePath)
