@@ -47,7 +47,7 @@ function getSignedRequest(file){
           success = uploadFile(file, response.signedRequest, response.url);
         }
         else{
-          alert('Could not get signed URL.');
+          console.log('Could not get signed URL.');
         }
       }
     };
@@ -67,7 +67,7 @@ function uploadFile(file, signedRequest, url){
             success = true;
         }
         else{
-          alert('Could not upload file.');
+          console.log('Could not upload file.');
         }
       }
     };
