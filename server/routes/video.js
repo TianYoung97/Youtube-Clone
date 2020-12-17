@@ -5,7 +5,7 @@ var ffmpeg = require('fluent-ffmpeg');
 const fs = require("fs")
 const aws = require('aws-sdk');
 var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
-
+const uploadHelper = require('../uploadHelper')
 const { Video } = require("../models/Video");
 const { Subscriber } = require("../models/Subscriber");
 const { auth } = require("../middleware/auth");
@@ -27,54 +27,13 @@ var storage = multer.diskStorage({
 })
 
 var upload = multer({ storage: storage }).single("file")
+
 const S3_BUCKET = process.env.S3_BUCKET;
 aws.config.region = 'us-east-2';
 
 //=================================
 //             User
 //=================================
-
-function getSignedRequest(file){
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', `/sign-s3?file-name=${file.name}&file-type=${file.type}`);
-    let success = false;
-    let url = '';
-    xhr.onreadystatechange = () => {
-      if(xhr.readyState === 4){
-        if(xhr.status === 200){
-          const response = JSON.parse(xhr.responseText);
-          url = response.url;
-          success = uploadFile(file, response.signedRequest, response.url);
-        }
-        else{
-          console.log('Could not get signed URL.');
-        }
-      }
-    };
-    xhr.send();
-    return {success: success, url: url}
-}
-
-function uploadFile(file, signedRequest, url){
-    const xhr = new XMLHttpRequest();
-    xhr.open('PUT', signedRequest);
-    let success = false;
-    xhr.onreadystatechange = () => {
-      if(xhr.readyState === 4){
-        if(xhr.status === 200){
-        //   document.getElementById('preview').src = url;
-        //   document.getElementById('avatar-url').value = url;
-            success = true;
-        }
-        else{
-          console.log('Could not upload file.');
-        }
-      }
-    };
-    xhr.send(file);
-    return success;
-}
-
 
 router.post("/uploadfiles", (req, res) => {
 
@@ -84,29 +43,17 @@ router.post("/uploadfiles", (req, res) => {
             console.log(err)
             return res.json({ success: false, err })
         }
+        console.log('Uploading Video!');
+        uploadHelper(res.req.file.path, res.req.file.filename)
+        .then(result => {
+            return res.json({ success: true, localFilePath: res.req.file.path, FileName: res.req.file.filename,
+                remoteFilePath: result.url})
+        })
+        .catch(result => {
+            return res.json({ success: false, err: result.err})
+        })
 
-        try {
-            if (fs.existsSync(req.file.path)) {
-              console.log("File exists.")
-            } else {
-              console.log("File does not exist.")
-            }
-          } catch(err) {
-            console.error(err)
-          }
-
-        result = getSignedRequest(req.file)
-
-        if (!result.success) {
-            const err = 'cannot save to AWS!';
-            console.log(err);
-            return res.json({succsss: false, err: err});
-        }
-
-        return res.json({ success: true, localFilePath: res.req.file.path, FileName: res.req.file.filename,
-                                         remoteFilePath: result.url})
     })
-
 
 });
 
@@ -115,7 +62,7 @@ router.post("/thumbnail", (req, res) => {
 
     let thumbsFilePath ="";
     let fileDuration ="";
-
+    let thumbsFileName =""
     ffmpeg.ffprobe(req.body.filePath, function(err, metadata){
         console.dir(metadata);
         console.log(metadata.format.duration);
@@ -128,16 +75,19 @@ router.post("/thumbnail", (req, res) => {
         .on('filenames', function (filenames) {
             console.log('Will generate ' + filenames.join(', '))
             thumbsFilePath = "uploads/thumbnails/" + filenames[0];
+            thumbsFileName = filenames[0];
         })
         .on('end', function () {
+            console.log('Uploading thumbfile!');
             console.log('Screenshots taken');
-            result = getSignedRequest(thumbsFilePath)
-            if (result.success) {
-                console.log('Screenshots saved to AWS!');
-            } else {
-                console.log('Screenshots NOT saved to AWS!');
-            }
-            return res.json({ success: true, localThumbsFilePath: thumbsFilePath, fileDuration: fileDuration, remoteThumbsFilePath: result.url})
+
+            uploadHelper(thumbsFilePath, thumbsFileName)
+            .then(result => {
+                return res.json({ success: true, localThumbsFilePath: thumbsFilePath, fileDuration: fileDuration, remoteThumbsFilePath: result.url})
+            })
+            .catch(result => {
+                return res.json({ success: false, err: result.err})
+            })
         })
         .screenshots({
             // Will take screens at 20%, 40%, 60% and 80% of the video
@@ -163,7 +113,7 @@ router.get("/getVideos", (req, res) => {
             if(err) return res.status(400).send(err);
             res.status(200).json({ success: true, videos })
         })
-
+    
 });
 
 
@@ -171,14 +121,12 @@ router.get("/getVideos", (req, res) => {
 router.post("/uploadVideo", (req, res) => {
 
     const video = new Video(req.body)
-
     video.save((err, video) => {
         if(err) return res.status(400).json({ success: false, err })
         return res.status(200).json({
             success: true 
         })
     })
-
 });
 
 
