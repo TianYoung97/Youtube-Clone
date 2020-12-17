@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const multer = require('multer');
 var ffmpeg = require('fluent-ffmpeg');
+const fs = require("fs")
 
 const { Video } = require("../models/Video");
 const { Subscriber } = require("../models/Subscriber");
@@ -37,8 +38,19 @@ router.post("/uploadfiles", (req, res) => {
         if (err) {
             return res.json({ success: false, err })
         }
+
+        try {
+            if (fs.existsSync(req.file.path)) {
+              console.log("File exists.")
+            } else {
+              console.log("File does not exist.")
+            }
+          } catch(err) {
+            console.error(err)
+          }
         return res.json({ success: true, filePath: res.req.file.path, fileName: res.req.file.filename })
     })
+
 
 });
 
@@ -67,7 +79,7 @@ router.post("/thumbnail", (req, res) => {
         })
         .screenshots({
             // Will take screens at 20%, 40%, 60% and 80% of the video
-            count: 3,
+            count: 1,
             folder: 'uploads/thumbnails',
             size:'320x240',
             // %b input basename ( filename w/o extension )
@@ -75,8 +87,6 @@ router.post("/thumbnail", (req, res) => {
         });
 
 });
-
-
 
 
 router.get("/getVideos", (req, res) => {

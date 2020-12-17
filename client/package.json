@@ -4,6 +4,7 @@
   "private": true,
   "dependencies": {
     "antd": "^3.24.1",
+    "aws-sdk": "^2.812.0",
     "axios": "^0.18.0",
     "formik": "^1.5.8",
     "moment": "^2.24.0",
