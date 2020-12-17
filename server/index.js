@@ -31,7 +31,7 @@ app.use('/api/like', require('./routes/like'));
 
 
 
-const S3_BUCKET = process.env.S3_BUCKET;
+const S3_BUCKET = process.env.S3_BUCKET_NAME;
 aws.config.region = 'us-east-2';
 
 app.get('/sign-s3', (req, res) => {
@@ -45,9 +45,10 @@ app.get('/sign-s3', (req, res) => {
     ContentType: fileType,
     ACL: 'public-read'
   };
-
+  console.log('????????????')
   s3.getSignedUrl('putObject', s3Params, (err, data) => {
     if(err){
+      console.log('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')
       console.log(err);
       return res.end();
     }
