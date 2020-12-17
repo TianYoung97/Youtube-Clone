@@ -3,6 +3,7 @@ const router = express.Router();
 const multer = require('multer');
 var ffmpeg = require('fluent-ffmpeg');
 const fs = require("fs")
+const aws = require('aws-sdk');
 
 const { Video } = require("../models/Video");
 const { Subscriber } = require("../models/Subscriber");
@@ -25,11 +26,53 @@ var storage = multer.diskStorage({
 })
 
 var upload = multer({ storage: storage }).single("file")
-
+const S3_BUCKET = process.env.S3_BUCKET;
+aws.config.region = 'us-east-2';
 
 //=================================
 //             User
 //=================================
+
+function getSignedRequest(file){
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `/sign-s3?file-name=${file.name}&file-type=${file.type}`);
+    let success = false;
+    let url = '';
+    xhr.onreadystatechange = () => {
+      if(xhr.readyState === 4){
+        if(xhr.status === 200){
+          const response = JSON.parse(xhr.responseText);
+          url = response.url;
+          success = uploadFile(file, response.signedRequest, response.url);
+        }
+        else{
+          alert('Could not get signed URL.');
+        }
+      }
+    };
+    xhr.send();
+    return {success: success, url: url}
+}
+
+function uploadFile(file, signedRequest, url){
+    const xhr = new XMLHttpRequest();
+    xhr.open('PUT', signedRequest);
+    let success = false;
+    xhr.onreadystatechange = () => {
+      if(xhr.readyState === 4){
+        if(xhr.status === 200){
+        //   document.getElementById('preview').src = url;
+        //   document.getElementById('avatar-url').value = url;
+            success = true;
+        }
+        else{
+          alert('Could not upload file.');
+        }
+      }
+    };
+    xhr.send(file);
+    return success;
+}
 
 
 router.post("/uploadfiles", (req, res) => {
@@ -50,7 +93,17 @@ router.post("/uploadfiles", (req, res) => {
           } catch(err) {
             console.error(err)
           }
-        return res.json({ success: true, filePath: res.req.file.path, fileName: res.req.file.filename })
+
+        result = getSignedRequest(req.file)
+
+        if (!result.success) {
+            const err = 'cannot save to AWS!';
+            console.log(err);
+            return res.json({succsss: false, err: err});
+        }
+
+        return res.json({ success: true, localFilePath: res.req.file.path, FileName: res.req.file.filename,
+                                         remoteFilePath: result.url})
     })
 
 
@@ -77,7 +130,13 @@ router.post("/thumbnail", (req, res) => {
         })
         .on('end', function () {
             console.log('Screenshots taken');
-            return res.json({ success: true, thumbsFilePath: thumbsFilePath, fileDuration: fileDuration})
+            result = getSignedRequest(thumbsFilePath)
+            if (result.success) {
+                console.log('Screenshots saved to AWS!');
+            } else {
+                console.log('Screenshots NOT saved to AWS!');
+            }
+            return res.json({ success: true, localThumbsFilePath: thumbsFilePath, fileDuration: fileDuration, remoteThumbsFilePath: result.url})
         })
         .screenshots({
             // Will take screens at 20%, 40%, 60% and 80% of the video
@@ -87,6 +146,10 @@ router.post("/thumbnail", (req, res) => {
             // %b input basename ( filename w/o extension )
             filename:'thumbnail-%b.png'
         });
+
+
+
+
 
 });
 

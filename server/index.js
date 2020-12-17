@@ -34,8 +34,6 @@ app.use('/api/like', require('./routes/like'));
 const S3_BUCKET = process.env.S3_BUCKET;
 aws.config.region = 'us-east-2';
 
-app.get('/account', (req, res) => res.render('account.html'));
-
 app.get('/sign-s3', (req, res) => {
   const s3 = new aws.S3();
   const fileName = req.query['file-name'];

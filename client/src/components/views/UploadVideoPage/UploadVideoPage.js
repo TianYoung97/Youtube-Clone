@@ -141,12 +141,11 @@ function UploadVideoPage(props) {
             .then(response => {
                 console.log(response)
                 if (response.data.success) {
-
                     let variable = {
-                        filePath: response.data.filePath,
+                        filePath: response.data.localFilePath,
                         fileName: response.data.fileName
                     }
-                    setFilePath(response.data.filePath)
+                    setFilePath(response.data.remoteFilePath)
 
                     //gerenate thumbnail with this filepath ! 
 
@@ -155,7 +154,7 @@ function UploadVideoPage(props) {
                             console.log(response)
                             if (response.data.success) {
                                 setDuration(response.data.fileDuration)
-                                setThumbnail(response.data.thumbsFilePath)
+                                setThumbnail(response.data.remoteThumbsFilePath)
                             } else {
                                 alert('Failed to make the thumbnails');
                             }
