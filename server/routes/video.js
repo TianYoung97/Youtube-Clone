@@ -4,6 +4,7 @@ const multer = require('multer');
 var ffmpeg = require('fluent-ffmpeg');
 const fs = require("fs")
 const aws = require('aws-sdk');
+var XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 
 const { Video } = require("../models/Video");
 const { Subscriber } = require("../models/Subscriber");
