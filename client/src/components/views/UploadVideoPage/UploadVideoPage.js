@@ -30,6 +30,7 @@ function getSignedRequest(file){
       if(xhr.readyState === 4){
         if(xhr.status === 200){
           const response = JSON.parse(xhr.responseText);
+          alert('Signed URL success!');
           uploadFile(file, response.signedRequest, response.url);
         }
         else{
@@ -46,8 +47,9 @@ function uploadFile(file, signedRequest, url){
     xhr.onreadystatechange = () => {
       if(xhr.readyState === 4){
         if(xhr.status === 200){
-          document.getElementById('preview').src = url;
-          document.getElementById('avatar-url').value = url;
+        //   document.getElementById('preview').src = url;
+        //   document.getElementById('avatar-url').value = url;
+        alert('Upload success!');
         }
         else{
           alert('Could not upload file.');
@@ -136,7 +138,7 @@ function UploadVideoPage(props) {
         }
         console.log(files)
         formData.append("file", files[0])
-        
+        getSignedRequest(files[0])
         axios.post('/api/video/uploadfiles', formData, config)
             .then(response => {
                 console.log(response)
